@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Кликер с Котиком и Миссиями</title>
+<style>
+  body {
+    text-align: center;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background:
+      linear-gradient(135deg, #5b2c6f 0%, #9b59b6 100%);
+    color: #e0d9f5;
+  }
+  h1 {
+    color: #d8b0ff;
+    margin-top: 30px;
+  }
+  #counter {
+    font-size: 2em;
+    color: #b6a0ff;
+    margin-top: 10px;
+  }
+  #shop {
+    margin-top: 30px;
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 20px;
+    border-radius: 15px;
+    display: inline-block;
+    text-align: left;
+    max-width: 320px;
+    color: #f0e9ff;
+    box-shadow: 0 0 15px rgba(155, 89, 182, 0.5);
+  }
+  #missions {
+    margin-top: 30px;
+    background-color: rgba(0,0,0,0.25);
+    padding: 15px;
+    border-radius: 12px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .mission {
+    background: #6b47a7cc;
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    color: #fff;
+    position: relative;
+  }
+  .mission p {
+    margin: 5px 0;
+  }
+  .mission button {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background-color: #ff6699;
+    border: none;
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    color: #330033;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  .mission button:disabled {
+    background-color: #666699;
+    cursor: default;
+    color: #ccc;
+  }
+</style>
+</head>
+<body>
+
+<h1>🐾 Кликер с Котиком и Миссиями 🐾</h1>
+<p>Клики: <span id="counter">0</span></p>
+
+<img
+  id="pusheen"
+  src="https://cdn.imgbin.com/15/0/24/imgbin-gund-pusheen-cat-puffy-stickers-gund-pusheen-cat-puffy-stickers-kitten-cat-5BbiMeLA6QxagF9AwAk27r9n3.jpg"
+  alt="Котик"
+  style="width:250px; cursor:pointer; border-radius: 15px;"
+/>
+
+<div id="shop">
+  <h2>🛍️ Магазин</h2>
+
+  <div class="item">
+    <p>Автокликер (+1 клик в секунду) — <strong><span id="autoclickerPrice">50</span></strong> кликов</p>
+    <button id="buyAutoclickerBtn">Купить</button>
+    <p>У тебя автокликеров: <span id="autoclickers">0</span></p>
+  </div>
+
+  <div class="item">
+    <p>Улучшение клика (+2 клика за клик) — <strong><span id="clickUpgradePrice">200</span></strong> кликов</p>
+    <button id="buyClickUpgradeBtn">Купить</button>
+    <p>Улучшений куплено: <span id="clickUpgradesCount">0</span></p>
+  </div>
+
+  <button id="resetBtn">Сбросить прогресс</button>
+</div>
+
+<div id="missions">
+  <h2>🎯 Миссии</h2>
+  <div id="missionsContainer"></div>
+</div>
+
+<script>
+  let counter = parseInt(localStorage.getItem('pusheenClicks')) || 0;
+  let autoclickers = parseInt(localStorage.getItem('pusheenAutoclickers')) || 0;
+  let clickPower = parseInt(localStorage.getItem('clickPower')) || 1;
+  let clickUpgradeCount = parseInt(localStorage.getItem('clickUpgradeCount')) || 0;
+  let autoclickerPrice = parseFloat(localStorage.getItem('autoclickerPrice')) || 50;
+  let clickUpgradePrice = 200;
+  
+  let missions = JSON.parse(localStorage.getItem('missions')) || [];
+  let missionSkipAttempts = JSON.parse(localStorage.getItem('missionSkipAttempts')) || {};
+
+  const counterEl = document.getElementById('counter');
+  const autoclickersEl = document.getElementById('autoclickers');
+  const buyAutoclickerBtn = document.getElementById('buyAutoclickerBtn');
+  const buyClickUpgradeBtn = document.getElementById('buyClickUpgradeBtn');
+  const autoclickerPriceEl = document.getElementById('autoclickerPrice');
+  const resetBtn = document.getElementById('resetBtn');
+  const pusheen = document.getElementById('pusheen');
+  const missionsContainer = document.getElementById('missionsContainer');
+  const clickUpgradesCountEl = document.getElementById('clickUpgradesCount');
+  const clickUpgradePriceEl = document.getElementById('clickUpgradePrice');
+
+  const possibleMissions = [
+    { id: 'm1', desc: 'Набрать 100 кликов', target: 100, reward: 50 },
+    { id: 'm2', desc: 'Набрать 1000 кликов', target: 1000, reward: 200 },
+    { id: 'm3', desc: 'Набрать 10 000 кликов', target: 10000, reward: 1000 },
+    { id: 'm4', desc: 'Набрать 10 000 000 000 кликов (взрыв мозга)', target: 10000000000, reward: 0, isFake: true },
+    { id: 'm5', desc: 'Набрать 5000 кликов', target: 5000, reward: 300 },
+    { id: 'm6', desc: 'Набрать 50 000 кликов', target: 50000, reward: 1500 }
+  ];
+
+  function saveGame() {
+    localStorage.setItem('pusheenClicks', counter);
+    localStorage.setItem('pusheenAutoclickers', autoclickers);
+    localStorage.setItem('clickPower', clickPower);
+    localStorage.setItem('clickUpgradeCount', clickUpgradeCount);
+    localStorage.setItem('autoclickerPrice', autoclickerPrice);
+    localStorage.setItem('missions', JSON.stringify(missions));
+    localStorage.setItem('missionSkipAttempts', JSON.stringify(missionSkipAttempts));
+  }
+
+  function updateDisplay() {
+    counterEl.textContent = Math.floor(counter);
+    autoclickersEl.textContent = autoclickers;
+    autoclickerPriceEl.textContent = Math.floor(autoclickerPrice);
+    clickUpgradesCountEl.textContent = clickUpgradeCount;
+    clickUpgradePriceEl.textContent = clickUpgradePrice * Math.pow(5, clickUpgradeCount);
+
+    buyAutoclickerBtn.disabled = counter < autoclickerPrice;
+    buyClickUpgradeBtn.disabled = counter < (clickUpgradePrice * Math.pow(5, clickUpgradeCount));
+    buyClickUpgradeBtn.textContent = clickUpgradeCount >= 5 ? 'Максимум куплено' : 'Купить';
+
+    updateMissionsDisplay();
+    saveGame();
+  }
+
+  function updateMissionsDisplay() {
+    missionsContainer.innerHTML = '';
+    missions.forEach(mission => {
+      const missionDiv = document.createElement('div');
+      missionDiv.className = 'mission';
+
+      const progress = Math.min(counter - mission.startCounter, mission.target);
+      const progressPercent = ((progress / mission.target) * 100).toFixed(1);
+
+      missionDiv.innerHTML = `
+        <p><strong>${mission.desc}</strong></p>
+        <p>Прогресс: ${progress} / ${mission.target} (${progressPercent}%)</p>
+        <button ${missionSkipAttempts[mission.id] >= 10 ? '' : 'disabled'} data-id="${mission.id}">Пропустить</button>
+      `;
+
+      if (progress >= mission.target) {
+        missionDiv.style.backgroundColor = '#3f9e3f';
+        missionDiv.innerHTML += `<p style="color:#0f0; font-weight:bold;">Миссия выполнена! Награда: ${mission.reward}</p>`;
+        missionDiv.querySelector('button').disabled = true;
+      }
+
+      missionsContainer.appendChild(missionDiv);
+    });
+
+    // Добавляем обработчики на кнопки пропуска
+    document.querySelectorAll('#missions button').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-id');
+        if (missionSkipAttempts[id] === undefined) missionSkipAttempts[id] = 0;
+        missionSkipAttempts[id]++;
+        if (missionSkipAttempts[id] >= 10) {
+          skipMission(id);
+        } else {
+          alert(`Ты ещё не можешь пропустить эту миссию. Попыток пропуска: ${missionSkipAttempts[id]}/10`);
+        }
+        updateDisplay();
+      };
+    });
+  }
+
+  function skipMission(id) {
+    const mission = missions.find(m => m.id === id);
+    if (!mission) return;
+    if (mission.isFake) {
+      alert('Это миссия без награды! Ты её пропустил.');
+    } else {
+      alert(`Миссия "${mission.desc}" пропущена. Награда за неё не даётся.`);
+    }
+    missions = missions.filter(m => m.id !== id);
+    spawnMissions();
+  }
+
+  function spawnMissions() {
+    while (missions.length < 3) {
+      const candidate = possibleMissions[Math.floor(Math.random() * possibleMissions.length)];
+      if (!missions.find(m => m.id === candidate.id)) {
+        missions.push({
+          id: candidate.id,
+          desc: candidate.desc,
+          target: candidate.target,
+          reward: candidate.reward,
+          isFake: candidate.isFake || false,
+          startCounter: counter
+        });
+      }
+    }
+  }
+
+  pusheen.addEventListener('click', () => {
+    counter += clickPower;
+    checkMissionsProgress();
+    updateDisplay();
+  });
+
+  let clickInterval = null;
+  pusheen.addEventListener('mousedown', () => {
+    if (counter >= 1000000) {
+      clickInterval = setInterval(() => {
+        counter += clickPower;
+        checkMissionsProgress();
+        updateDisplay();
+      }, 1);
+    }
+  });
+  window.addEventListener('mouseup', () => {
+    if (clickInterval) clearInterval(clickInterval);
+  });
+
+  function checkMissionsProgress() {
+    missions.forEach(mission => {
+      const progress = counter - mission.startCounter;
+      if (progress >= mission.target && !mission.completed) {
+        mission.completed = true;
+        if (!mission.isFake) {
+          counter += mission.reward;
+          alert(`Миссия "${mission.desc}" выполнена! Ты получил ${mission.reward} кликов!`);
+        } else {
+          alert(`Миссия "${mission.desc}" выполнена! Но награды нет.`);
+        }
+        missions = missions.filter(m => m.id !== mission.id);
+        spawnMissions();
+      }
+    });
+  }
+
+  buyAutoclickerBtn.addEventListener('click', () => {
+    if (counter >= autoclickerPrice) {
+      counter -= autoclickerPrice;
+      autoclickers++;
+      autoclickerPrice *= 1.5;
+      updateDisplay();
+    } else {
+      alert('Недостаточно кликов!');
+    }
+  });
+
+  buyClickUpgradeBtn.addEventListener('click', () => {
+    if (clickUpgradeCount >= 5) {
+      alert('Ты достиг максимума улучшений клика!');
+      return;
+    }
+    let priceNow = clickUpgradePrice * Math.pow(5, clickUpgradeCount);
+    if (counter >= priceNow) {
+      counter -= priceNow;
+      clickPower += 2;
+      clickUpgradeCount++;
+      updateDisplay();
+    } else {
+      alert('Недостаточно кликов!');
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (confirm('Ты уверен, что хочешь сбросить прогресс?')) {
+      localStorage.clear();
+      counter = 0;
+      autoclickers = 0;
+      clickPower = 1;
+      clickUpgradeCount = 0;
+      autoclickerPrice = 50;
+      missions = [];
+      missionSkipAttempts = {};
+      spawnMissions();
+      updateDisplay();
+    }
+  });
+
+  // Автокликер: добавляет клики каждую секунду
+  setInterval(() => {
+    if (autoclickers > 0) {
+      counter += autoclickers;
+      checkMissionsProgress();
+      updateDisplay();
+    }
+  }, 1000);
+
+  // Инициализация при загрузке
+  if (missions.length === 0) {
+    spawnMissions();
+  }
+  updateDisplay();
+</script>
+
+</body>
+
+</html>
